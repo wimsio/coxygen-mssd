@@ -1,11 +1,14 @@
 
 # 🍨 MSSD — Mockup Sundae Swap DEX (Type-Safe Haskell Project)
 
-![Pasted image (16)](https://github.com/user-attachments/assets/c96f4a17-0a09-4ed3-b42a-95fb9799d119)
-
 ![image](https://github.com/user-attachments/assets/0a260d32-1c4c-4df1-9594-a201529f6976)
 
+![Pasted image (16)](https://github.com/user-attachments/assets/c96f4a17-0a09-4ed3-b42a-95fb9799d119)
+
 Welcome to the **MSSD** project — a beginner-friendly, strongly typed mock decentralized exchange built in **pure Haskell**. This project uses GADTs, smart constructors, and property-based testing to teach you core functional programming concepts and formal correctness.
+
+Coxygen Global aims to the global leader in Cardano students onboardment. This project named MSSD is one of those Real Life Use Case Based Practicals [RLUCBP]. This involves modelling a real life
+situation coding it in Haskell/Plutus etc in order to gain skills of coding and knowledge about projects development. Aim is to speed up development at the same time adhere to coding standards with new developers and students.
 
 ---
 
