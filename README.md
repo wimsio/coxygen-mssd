@@ -80,10 +80,21 @@ MSSD/
 Defines a token with a name and quantity. Enforced invariant: `quantity > 0`.
 
 ```haskell
-data Token (q :: QuantityStatus) where
-  SafeToken :: { tokenName :: String, quantity :: Integer } -> Token 'Valid
+{-@ LIQUID "--no-termination" @-}
+module Token (Token(..), createToken) where
 
-createToken :: String -> Integer -> Maybe (Token 'Valid)
+-- Refined type: quantity must be strictly positive
+{-@ data Token = Token
+      { tokenName :: String
+      , quantity  :: {v:Integer | v > 0}
+      }
+  @-}
+data Token = Token { tokenName :: String, quantity :: Integer } deriving (Show, Eq)
+
+-- Function refinement: only allows positive quantity input
+{-@ createToken :: name:String -> {qty:Integer | qty > 0} -> Token @-}
+createToken :: String -> Integer -> Token
+createToken = Token
 ```
 
 ---
@@ -92,10 +103,24 @@ createToken :: String -> Integer -> Maybe (Token 'Valid)
 Defines a user with a unique ID, name, and list of tokens. Enforced: `userId >= 0`.
 
 ```haskell
-data User (s :: UserStatus) where
-  SafeUser :: { userId :: Int, username :: String, holdings :: [Token 'Valid] } -> User 'Good
+{-@ LIQUID "--no-termination" @-}
+module User (User(..), createUser) where
 
-createUser :: Int -> String -> Maybe (User 'Good)
+import Token
+
+-- User ID must be non-negative, and holdings list must be empty when created
+{-@ data User = User
+      { userId   :: {v:Int | v >= 0}
+      , username :: String
+      , holdings :: [Token]
+      }
+  @-}
+data User = User { userId :: Int, username :: String, holdings :: [Token] } deriving (Show, Eq)
+
+-- Guarantees initial holdings are empty and userId is non-negative
+{-@ createUser :: {v:Int | v >= 0} -> String -> User @-}
+createUser :: Int -> String -> User
+createUser uid uname = User uid uname []
 ```
 
 ---
@@ -104,10 +129,25 @@ createUser :: Int -> String -> Maybe (User 'Good)
 Defines a listing for a token with a price. Enforced: `price > 0`.
 
 ```haskell
-data Listing (p :: PriceStatus) where
-  SafeListing :: Token 'Valid -> Double -> Listing 'Positive
+{-@ LIQUID "--no-termination" @-}
+module Exchange (Listing(..), listToken) where
 
-createListing :: Token 'Valid -> Double -> Maybe (Listing 'Positive)
+import Token
+
+-- Refine: price must be strictly greater than 0
+{-@ data Listing = Listing
+      { listedToken :: Token
+      , price       :: {v:Double | v > 0.0}
+      }
+  @-}
+data Listing = Listing { listedToken :: Token, price :: Double } deriving (Show, Eq)
+
+-- Function refinement: prevent zero or negative price listings
+{-@ listToken :: Token -> {v:Double | v > 0.0} -> Listing @-}
+listToken :: Token -> Double -> Listing
+listToken = Listing
+
+
 ```
 
 ---
@@ -116,9 +156,44 @@ createListing :: Token 'Valid -> Double -> Maybe (Listing 'Positive)
 Liquidity provider tokens with fixed quantity of 100.
 
 ```haskell
-data LPToken = LPToken { lpOwner :: String, lpQty :: Integer }
+{-@ LIQUID "--no-termination" @-}
+module LP (LPToken(..), generateMLTTokens) where
 
+{-@ data LPToken = LPToken
+      { lpOwner :: String
+      , lpQty   :: {v:Integer | v == 100}
+      }
+  @-}
+data LPToken = LPToken { lpOwner :: String, lpQty :: Integer } deriving (Show, Eq)
+
+{-@ generateMLTTokens :: [String] -> [{v:LPToken | lpQty v == 100}] @-}
 generateMLTTokens :: [String] -> [LPToken]
+generateMLTTokens owners = [ LPToken owner 100 | owner <- owners ]
+
+
+```
+### 💧 `app/Main.hs`
+This is the entry point of the project when running. The main imports other modules Token, User, Exchange and LP and has their functions tested.
+module Main where
+
+import Token
+import User
+import Exchange
+import LP
+
+main :: IO ()
+main = do
+  let token = createToken "SUNDAE" 10000
+      user = createUser 1 "Alice"
+      listing = listToken token 2.5
+      lpTokens = generateMLTTokens ["Alice", "Bob"]
+  putStrLn $ "Token: " ++ show token
+  putStrLn $ "User: " ++ show user
+  putStrLn $ "Listing: " ++ show listing
+  putStrLn $ "Liquidity tokens: " ++ show lpTokens
+
+```haskell
+
 ```
 
 ---
@@ -170,16 +245,58 @@ build-depends:
 ### 📁 Sample `test/Spec.hs`
 
 ```haskell
-import Test.Tasty
-import Test.Tasty.QuickCheck as QC
+module Main where
 
-main = defaultMain tests
+import Test.QuickCheck
+import Token
+import User
+import Exchange
+import LP
+import Data.List (nub)
 
-tests :: TestTree
-tests = testGroup "QuickCheck Tests"
-  [ QC.testProperty "Token quantity must be > 0" $
-      \qty -> qty > 0 QC.==> tokenQuantity (SafeToken "T" qty) > 0
-  ]
+instance Arbitrary Token where
+  arbitrary = do
+    name <- elements ["SUNDAE", "MILKSHAKE", "CONE", "SPRINKLES"]
+    Positive qty <- arbitrary
+    return (createToken name qty)
+
+instance Arbitrary User where
+  arbitrary = do
+    uid <- arbitrary
+    uname <- elements ["Alice", "Bob", "Charlie"]
+    return (createUser uid uname)
+
+instance Arbitrary LPToken where
+  arbitrary = LPToken <$> elements ["Alice", "Bob", "Charlie"] <*> pure 100
+
+prop_createToken :: String -> Positive Integer -> Bool
+prop_createToken name (Positive qty) =
+  let token = createToken name qty
+  in tokenName token == name && quantity token == qty
+
+prop_createUser :: Int -> String -> Bool
+prop_createUser uid uname =
+  let user = createUser uid uname
+  in userId user == uid && username user == uname && null (holdings user)
+
+prop_listingPricePositive :: Token -> Positive Double -> Bool
+prop_listingPricePositive token (Positive price) =
+  let listing = listToken token price
+  in price > 0 && listedToken listing == token
+
+prop_generateMLTTokens :: [String] -> Bool
+prop_generateMLTTokens owners =
+  let lpTokens = generateMLTTokens owners
+  in length lpTokens == length owners &&
+     all (\lp -> lpQty lp == 100) lpTokens &&
+     nub (map lpOwner lpTokens) == nub owners
+
+main :: IO ()
+main = do
+  quickCheck prop_createToken
+  quickCheck prop_createUser
+  quickCheck prop_listingPricePositive
+  quickCheck prop_generateMLTTokens
 ```
 
 ### ▶️ Run the tests
@@ -222,21 +339,45 @@ case t of
 ## 📄 Understanding the `.cabal` File
 
 ```cabal
-cabal-version: 3.0
-name: MSSD
-version: 0.1.0.0
+-- File: mockup-sundae-swap-decentralized-exchange.cabal
+
+name:                mssd
+version:             0.1.0.0
+build-type:          Simple
+cabal-version:       >=1.10
 
 library
-  hs-source-dirs: src
-  exposed-modules: Token, User, Exchange, LP
-  build-depends: base >=4.15 && <5
-  default-language: Haskell2010
+  hs-source-dirs:      src
+  exposed-modules:
+      Token
+    , User
+    , Exchange
+    , LP
+  build-depends:
+      base >=4.7 && <5
+  default-language:    Haskell2010
 
-executable MSSD-exe
-  main-is: Main.hs
-  hs-source-dirs: app
-  build-depends: base, MSSD
-  default-language: Haskell2010
+test-suite mssd-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:
+      base
+    , mssd
+    , tasty
+    , tasty-hunit
+    , QuickCheck >=2.14
+    , tasty-quickcheck
+  default-language:    Haskell2010
+
+executable mssd-app
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  build-depends:
+      base       >=4.7 && <5
+    , mssd
+  default-language:    Haskell2010
+
 ```
 
 ### Key Fields
