@@ -10,6 +10,8 @@ Welcome to the **MSSD** project — a beginner-friendly, strongly typed mock dec
 Coxygen Global aims to the global leader in Cardano students onboardment. This project named MSSD is one of those Real Life Use Case Based Practicals [RLUCBP]. This involves modelling a real life
 situation coding it in Haskell/Plutus etc in order to gain skills of coding and knowledge about projects development. Aim is to speed up development at the same time adhere to coding standards with new developers and students.
 
+This will teach and introduce you to Cabal, Haskell, Property Based Tests(Quick Check), Logic & Maths Proofing(liquidhaskell/GADTs). 
+
 ---
 
 ## 📁 Project Structure
