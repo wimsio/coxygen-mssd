@@ -27,7 +27,9 @@ MSSD/
 - install git
 - git init - this will initilize a git configuration file
 - git branch -m <branch name : This is a string so use "dev" or "main"> - creates a new branch with name given
+
 ### - Login into github and create a new empty repository. Copy its git...url from the green button
+
 - git add . - this will add all files in the local project to the stagging area, an area before a commit area
 - git commit -m <message for committing this project as a string>
 - git remote add origin <url - e.g. https://github.com/wimsio/coxygen-mssd.git> if there are remote and local files conflicts then resolve them first
@@ -35,21 +37,31 @@ MSSD/
 - git branch -M main
 - git push -u origin main - If there are conflicts again try git config pull.rebase false 
 - git push origin main - again should work. 
-If you see something like code below Congratulations! then check your remote project files have been uploaded. If you see nothing then reload the web page.
-Enumerating objects: 82, done.
-Counting objects: 100% (82/82), done.
-Delta compression using up to 12 threads
-Compressing objects: 100% (68/68), done.
-Writing objects: 100% (80/80), 2.45 MiB | 1.31 MiB/s, done.
-Total 80 (delta 14), reused 0 (delta 0), pack-reused 0
-remote: Resolving deltas: 100% (14/14), done.
-To https://github.com/wimsio/coxygen-mssd.git
-   b88d160..92f650f  main -> main
-branch 'main' set up to track 'origin/main'.
+
+  If you see something like code below Congratulations! then check your remote project files have been uploaded. If you see nothing then reload the web page.
+  Enumerating objects: 82, done.
+  Counting objects: 100% (82/82), done.
+  Delta compression using up to 12 threads
+  Compressing objects: 100% (68/68), done.
+  Writing objects: 100% (80/80), 2.45 MiB | 1.31 MiB/s, done.
+  Total 80 (delta 14), reused 0 (delta 0), pack-reused 0
+  remote: Resolving deltas: 100% (14/14), done.
+  To https://github.com/wimsio/coxygen-mssd.git
+    b88d160..92f650f  main -> main
+  branch 'main' set up to track 'origin/main'.
+
 ### - Updating local changes to remote project
+
 - git add . - after adding or modifying local project files
-- git commit -m "Updated the Readme file by adding git steps for new developers"
-- git push origin main
+- git commit -m "Updated the Readme file by adding git steps for new developers". You should see something like code below:
+
+  [main fcd1eb7] Updated the Readme file by adding git steps for new developers
+  1 file changed, 33 insertions(+)
+
+- git push origin main - You should see files uploaded with their sizes e.g. code below
+
+  [main fcd1eb7] Updated the Readme file by adding git steps for new developers
+  1 file changed, 33 insertions(+)
 
 ```
 
