@@ -12,6 +12,8 @@ situation coding it in Haskell/Plutus etc in order to gain skills of coding and 
 
 This will teach and introduce you to Cabal, Haskell, Property Based Tests(Quick Check), Logic & Maths Proofing(liquidhaskell/GADTs). 
 
+To those new to Decentralized Exchanges check this https://v2.sundaeswap.finance/. 
+
 ---
 
 ## 📁 Project Structure
