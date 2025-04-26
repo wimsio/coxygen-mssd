@@ -77,6 +77,7 @@ MSSD/
 ## 🧱 Modules Overview
 
 ### 🎫 `Token.hs`
+
 Defines a token with a name and quantity. Enforced invariant: `quantity > 0`.
 
 ```haskell
@@ -172,6 +173,263 @@ generateMLTTokens owners = [ LPToken owner 100 | owner <- owners ]
 
 
 ```
+---
+
+### Reasoning your code on modules User.hs, Token.hs, LP.hs and Exchange.hs. Adding logic and maths to improving your code with formal methods demo
+#### a. Token.hs
+```haskell
+Here’s what each part of your Liquid Haskell–annotated module is doing:
+
+--- LP
+
+## 1. `{-@ LIQUID "--no-termination" @-}`
+
+By default Liquid Haskell tries to verify that **every** function in your module terminates.  
+- The flag `--no-termination` disables that check so you don’t need to prove termination for recursive or list-comprehension-based definitions.  
+- This is often used during development, or when you know your code terminates but don’t want to write an explicit termination measure.
+
+---
+
+## 2. Refining the `LPToken` data type
+
+```haskell
+{-@ data LPToken = LPToken
+      { lpOwner :: String
+      , lpQty   :: {v:Integer | v == 100}
+      }
+  @-}
+
+
+- **`data LPToken = LPToken { … }`** is your usual Haskell ADT.  
+- The Liquid Haskell annotation re-declares it with **refined field types**:  
+  - `lpOwner :: String` stays the same.  
+  - `lpQty   :: {v:Integer | v == 100}` means “the `lpQty` field must always be **exactly** 100.”  
+- Liquid Haskell will now reject any code that tries to construct an `LPToken` where `lpQty` is not 100.
+
+---
+
+## 3. Specifying the `generateMLTTokens` function
+
+```haskell
+{-@ generateMLTTokens :: [String] -> [{v:LPToken | lpQty v == 100}] @-}
+generateMLTTokens :: [String] -> [LPToken]
+generateMLTTokens owners = [ LPToken owner 100 | owner <- owners ]
+
+
+- The annotation says:
+  - Input: a list of `String`.  
+  - Output: a list of `LPToken`s, each of which must satisfy the predicate `lpQty v == 100`.  
+- Liquid Haskell uses this spec to check that the list comprehension `[ LPToken owner 100 | … ]` indeed only produces tokens whose `lpQty` equals 100.  
+- If you accidentally wrote something like `LPToken owner 50`, LH would flag a type error.
+
+---
+
+### Why these refinements help
+
+- **Stronger invariants at compile time.** You guarantee that **no** `LPToken` can ever carry a quantity other than 100.  
+- **Self-documenting API.** Anyone reading your type signatures immediately knows the intended “fixed-100” semantics.  
+- **Automatic checking.** Liquid Haskell enforces the annotation, so you get early feedback if the code drifts.
+
+--
+
+```
+#### b. User.hs
+```Haskell
+
+{-@ LIQUID "--no-termination" @-}
+
+- Turns off Liquid Haskell’s requirement to prove that every function terminates.
+- Handy when you’re using simple definitions (like list comprehensions or single‐clause functions) and don’t want to supply a termination metric.
+- You can safely remove this once you add any recursive definitions and provide a decreasing measure.
+
+---
+
+## 2. Refining the `User` Data Type
+
+```haskell
+{-@ data User = User
+      { userId   :: {v:Int | v >= 0}
+      , username :: String
+      , holdings :: [Token]
+      }
+  @-}
+data User = User
+  { userId   :: Int
+  , username :: String
+  , holdings :: [Token]
+  }
+  deriving (Show, Eq)
+
+
+- **`userId :: {v:Int | v >= 0}`**  
+  Enforces that every `User` must have a non-negative ID. Any attempt to construct a `User` with a negative `userId` will be rejected.
+- **`username :: String`**  
+  Left unrefined, so any string is valid.
+- **`holdings :: [Token]`**  
+  Lists the tokens a user holds; no extra refinement here, but see the constructor spec below.
+
+---
+
+## 3. Specifying `createUser`
+
+```haskell
+{-@ createUser :: {v:Int | v >= 0} -> String -> User @-}
+createUser :: Int -> String -> User
+createUser uid uname = User uid uname []
+
+
+- **Input refinements:**  
+  - The first argument (`uid`) must be ≥ 0.  
+  - The second argument (`uname`) is any `String`.  
+- **Output guarantee:**  
+  Because the only way to build a `User` via `createUser` is with an empty list for `holdings`, Liquid Haskell knows every `User` created this way starts with no tokens.
+
+---
+
+## 4. Benefits of These Annotations
+
+1. **Strong Invariants**  
+   - No `User` can ever slip through with a negative ID.  
+   - New users always begin with zero holdings.
+
+2. **Self-Documenting Types**  
+   - Reading the signature, you immediately see “IDs are non-negative” and “holdings start empty.”
+
+3. **Compile-Time Safety**  
+   - Mistakes like `createUser (-1) "bob"` or manually writing `User 5 "alice" [someToken]` won’t type‐check unless you explicitly bypass the spec.
+
+---
+
+### Next Steps
+
+- **Re-enable termination checks** by removing `--no-termination` once you add recursive functions (e.g., updating holdings).  
+- **Add further refinements** if you introduce rules like “username must be non-empty” (`{v:String | len v > 0}`) or “holdings can’t exceed a certain size.”  
+
+With these specs, your user‐management layer is guaranteed to start users in a valid state, enforced by the type system itself.
+
+```
+#### c. Exchange.hs
+
+Here’s a breakdown of the Liquid Haskell annotations in your `Exchange` module:
+
+```haskell
+
+## 1. `{-@ LIQUID "--no-termination" @-}`
+
+- Disables Liquid Haskell’s termination checker for this module.  
+- Useful when you know your definitions terminate (or you don’t need the check) but haven’t provided an explicit decreasing measure.  
+- You can drop this flag later once you’ve proved termination (e.g., by supplying a metric for recursion).
+
+---
+
+## 2. Refining the `Listing` data type
+
+
+{-@ data Listing = Listing
+      { listedToken :: Token
+      , price       :: {v:Double | v > 0.0}
+      }
+  @-}
+data Listing = Listing { listedToken :: Token, price :: Double }
+  deriving (Show, Eq)
+
+- `listedToken :: Token` remains unconstrained beyond the `Token` type you’ve defined elsewhere.  
+- `price :: {v:Double | v > 0.0}` enforces that any `Listing` must carry a strictly positive price.  
+- Any attempt to construct `Listing … price = 0.0` or a negative price is rejected at compile time.
+
+## 3. Specifying the `listToken` function
+
+{-@ listToken :: Token -> {v:Double | v > 0.0} -> Listing @-}
+listToken :: Token -> Double -> Listing
+listToken = Listing
+
+- The type annotation says:
+  1. You pass in a `Token`.  
+  2. You pass in a `Double` that Liquid Haskell knows must be strictly greater than 0.0.  
+  3. You get back a `Listing` whose `price` field is guaranteed to satisfy that same `> 0.0` refinement.  
+- This prevents you from even calling `listToken` with a zero or negative price—LH will flag it as a type error before compilation.
+
+---
+
+## 4. Benefits of these refinements
+
+- **Safety:** You can never create a “free” or negative‐priced listing by mistake.  
+- **Clarity:** The API’s intent (“price must be positive”) is documented directly in the types.  
+- **Early feedback:** Liquid Haskell enforces these invariants at compile time, catching errors immediately.
+
+---
+
+**Next steps:**  
+- Once you’ve confirmed termination for any recursive functions you add to this module, consider removing `--no-termination` to re‐enable full termination checking.
+- If you need more sophisticated pricing rules (e.g., upper bounds, currency checks), you can refine further (e.g., `{v:Double | v > 0.0 && v < 1e6}`).
+
+```
+
+#### d. LP.hs
+
+Here’s a similar breakdown for your `LP.hs` module with Liquid Haskell refinements:
+
+```Haskell
+
+## 1. Disabling Termination Checking
+
+{-@ LIQUID "--no-termination" @-}
+
+- Turns off Liquid Haskell’s termination checker for this file.
+- Useful if you have list comprehensions or recursion and don’t want to supply a termination metric right now.
+- You can remove this flag later once you’ve proven (or measured) that all functions terminate.
+
+## 2. Refining the `LPToken` Type
+
+{-@ data LPToken = LPToken
+      { lpOwner :: String
+      , lpQty   :: {v:Integer | v == 100}
+      }
+  @-}
+data LPToken = LPToken { lpOwner :: String, lpQty :: Integer }
+  deriving (Show, Eq)
+
+- **`lpOwner :: String`** remains unrefined—any string is allowed.
+- **`lpQty :: {v:Integer | v == 100}`** fixes the token quantity to exactly `100`.  
+  - Liquid Haskell will reject any construction where `lpQty /= 100`.
+
+---
+
+## 3. Annotating `generateMLTTokens`
+
+{-@ generateMLTTokens :: [String] -> [{v:LPToken | lpQty v == 100}] @-}
+generateMLTTokens :: [String] -> [LPToken]
+generateMLTTokens owners = [ LPToken owner 100 | owner <- owners ]
+
+- **Input:** list of owner names (`[String]`).
+- **Output:** list of `LPToken` values, each satisfying the predicate `lpQty v == 100`.  
+- The list-comprehension builds exactly those tokens with `100` units, so LH can statically verify the invariant holds.
+
+---
+
+## 4. Why These Refinements Matter
+
+1. **Invariants at the Type Level**  
+   Ensures you never accidentally create an `LPToken` with the “wrong” quantity.
+
+2. **Self-Documenting**  
+   The type signature itself tells future readers: “All pool tokens are 100 units.”
+
+3. **Compile-time Safety**  
+   Liquid Haskell will catch any deviation (e.g. if someone later tried `LPToken owner 50`).
+
+---
+
+### Next Steps
+
+- **Re-enable termination checks** once you add more complex, recursive functions (e.g., SPL token minting logic).
+- **Extend refinements** if you introduce other fixed rules (e.g., owner strings matching a pattern or additional token types).
+
+With these annotations, your MLT‐token generator is guaranteed by the type system to always produce tokens of exactly 100 units—giving you strong, compile-time assurances.
+
+```
+### 💧 Main.hs
+```haskell
 ### 💧 `app/Main.hs`
 This is the entry point of the project when running. The main imports other modules Token, User, Exchange and LP and has their functions tested.
 module Main where
