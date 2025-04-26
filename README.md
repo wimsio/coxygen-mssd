@@ -1,24 +1,48 @@
+# 🍨 **MSSD — Mockup Sundae Swap DEX**  
 
-# 🍨 MSSD — Mockup Sundae Swap DEX : [Cabal, Haskell, Property Based Tests(Quick Check), Logic & Maths Proofing(liquidhaskell/GADTs)]
+<img src="https://github.com/user-attachments/assets/c96f4a17-0a09-4ed3-b42a-95fb9799d119" alt="placeholder" width="50" height="50">
 
-![image](https://github.com/user-attachments/assets/0a260d32-1c4c-4df1-9594-a201529f6976)
+### *[Cabal, Haskell, Property Based Tests (QuickCheck), Logic & Maths Proofing (LiquidHaskell/GADTs)]*
 
-![Pasted image (16)](https://github.com/user-attachments/assets/c96f4a17-0a09-4ed3-b42a-95fb9799d119)
+<img src="https://github.com/user-attachments/assets/0a260d32-1c4c-4df1-9594-a201529f6976" alt="placeholder" width="250" height="150">
 
-Welcome to the **MSSD** project — a beginner-friendly, strongly typed mock decentralized exchange built in **pure Haskell**. This project uses GADTs, smart constructors, and property-based testing to teach you core functional programming concepts and formal correctness.
-
-Coxygen Global aims to the global leader in Cardano students onboardment. This project named MSSD is one of those Real Life Use Case Based Practicals [RLUCBP]. This involves modelling a real life
-situation coding it in Haskell/Plutus etc in order to gain skills of coding and knowledge about projects development. Aim is to speed up development at the same time adhere to coding standards with new developers and students.
-
-This will teach and introduce you to Cabal, Haskell, Property Based Tests(Quick Check), Logic & Maths Proofing(liquidhaskell/GADTs). 
-
-To those new to Decentralized Exchanges check this https://v2.sundaeswap.finance/. 
+## 📖 **Table of Contents**
+1. [Introduction](#introduction)
+2. [Project Structure](#project-structure)
+3. [Git Basics for Beginners](#git-basics-for-beginners)
+4. [Modules Overview](#modules-overview)
+   1. [Token.hs](#tokenhs)
+   2. [User.hs](#userhs)
+   3. [Exchange.hs](#exchangehs)
+   4. [LP.hs](#lphs)
+   5. [Main.hs](#mainhs)
+5. [Getting Started](#getting-started)
+6. [Property-Based Testing](#property-based-testing)
+7. [Using GHCi (REPL)](#using-ghci-repl)
+8. [Understanding the `.cabal` File](#understanding-the-cabal-file)
+9. [GADTs vs LiquidHaskell](#gadts-vs-liquidhaskell)
+10. [Additional Resources](#additional-resources)
+11. [Final Words](#final-words)
 
 ---
 
-## 📁 Project Structure
+## 1. 🎉 **Introduction** <a id="introduction"></a>
 
-```
+Welcome to the **MSSD** project—a beginner-friendly, strongly typed mock decentralized exchange built in **pure Haskell**. This project uses GADTs, smart constructors, and property-based testing to teach core functional programming concepts and formal correctness.
+
+Coxygen Global aims to be a global leader in onboarding Cardano students. MSSD is a Real Life Use Case Based Practical (RLUCBP) designed to model real-life scenarios in Haskell/Plutus to speed up skill development and adhere to coding standards.
+
+New to Decentralized Exchanges? Check out [SundaeSwap](https://v2.sundaeswap.finance).
+
+When you git clone, cabal update, cabal build, cabal run or cabal test this is what you should get 
+
+![image](https://github.com/user-attachments/assets/d1b0cc89-7e39-415d-8f9b-e2d2ed79e576)
+
+---
+
+## 2. 📁 **Project Structure** <a id="project-structure"></a>
+
+```bash
 MSSD/
 ├── app/Main.hs           -- Entry point
 ├── src/
@@ -28,13 +52,14 @@ MSSD/
 │   └── LP.hs             -- Liquidity providers (fixed amount)
 ├── test/Spec.hs          -- Property-based tests
 ├── MSSD.cabal            -- Project config for Cabal
-└── README.md             -- This file
+└── README.md             -- Documentation
 ```
 
 ---
-## git for new users Linux/WSL terminal(cmd.exe)
 
-```
+## 3. 🖥️ **Git Basics for Beginners** <a id="git-basics-for-beginners"></a>
+
+```bash
 - install git
 - git init - this will initilize a git configuration file
 - git branch -m <branch name : This is a string so use "dev" or "main"> - creates a new branch with name given
@@ -73,18 +98,18 @@ MSSD/
 
   [main fcd1eb7] Updated the Readme file by adding git steps for new developers
   1 file changed, 33 insertions(+)
-
 ```
 
 ---
 
-## 🧱 Modules Overview
+## 4. 🧱 **Modules Overview** <a id="modules-overview"></a>
 
-### 🎫 `Token.hs`
-
-Defines a token with a name and quantity. Enforced invariant: `quantity > 0`.
+### 4.1 🎫 `Token.hs` <a id="tokenhs"></a>
+Defines tokens ensuring quantity > 0.
 
 ```haskell
+{-@ createToken :: name:String -> {qty:Integer | qty > 0} -> Token @-}
+
 {-@ LIQUID "--no-termination" @-}
 module Token (Token(..), createToken) where
 
@@ -102,12 +127,12 @@ createToken :: String -> Integer -> Token
 createToken = Token
 ```
 
----
-
-### 👤 `User.hs`
-Defines a user with a unique ID, name, and list of tokens. Enforced: `userId >= 0`.
+### 4.2 👤 `User.hs` <a id="userhs"></a>
+Users with non-negative IDs and initially empty token holdings.
 
 ```haskell
+{-@ createUser :: {v:Int | v >= 0} -> String -> User @-}
+
 {-@ LIQUID "--no-termination" @-}
 module User (User(..), createUser) where
 
@@ -128,12 +153,12 @@ createUser :: Int -> String -> User
 createUser uid uname = User uid uname []
 ```
 
----
-
-### 💱 `Exchange.hs`
-Defines a listing for a token with a price. Enforced: `price > 0`.
+### 4.3 💱 `Exchange.hs` <a id="exchangehs"></a>
+Listings ensuring prices are strictly positive.
 
 ```haskell
+{-@ listToken :: Token -> {v:Double | v > 0.0} -> Listing @-}
+
 {-@ LIQUID "--no-termination" @-}
 module Exchange (Listing(..), listToken) where
 
@@ -151,16 +176,14 @@ data Listing = Listing { listedToken :: Token, price :: Double } deriving (Show,
 {-@ listToken :: Token -> {v:Double | v > 0.0} -> Listing @-}
 listToken :: Token -> Double -> Listing
 listToken = Listing
-
-
 ```
 
----
-
-### 💧 `LP.hs`
-Liquidity provider tokens with fixed quantity of 100.
+### 4.4 💧 `LP.hs` <a id="lphs"></a>
+Liquidity provider tokens fixed at quantity 100.
 
 ```haskell
+{-@ generateMLTTokens :: [String] -> [{v:LPToken | lpQty v == 100}] @-}
+
 {-@ LIQUID "--no-termination" @-}
 module LP (LPToken(..), generateMLTTokens) where
 
@@ -174,12 +197,14 @@ data LPToken = LPToken { lpOwner :: String, lpQty :: Integer } deriving (Show, E
 {-@ generateMLTTokens :: [String] -> [{v:LPToken | lpQty v == 100}] @-}
 generateMLTTokens :: [String] -> [LPToken]
 generateMLTTokens owners = [ LPToken owner 100 | owner <- owners ]
-
-
 ```
+
+### 4.5 🚀 `Main.hs` <a id="mainhs"></a>
+Demonstrates module integration and function usage.
+
 ---
 
-### Reasoning your code on modules User.hs, Token.hs, LP.hs and Exchange.hs. Adding logic and maths to improving your code with formal methods demo
+### 4.6 🚀 Reasoning your code on modules User.hs, Token.hs, LP.hs and Exchange.hs. Adding logic and maths to improving your code with formal methods demo
 #### a. Token.hs
 ```haskell
 Here’s what each part of your Liquid Haskell–annotated module is doing:
@@ -458,13 +483,9 @@ main = do
 
 ```
 
----
+## 5. 💻 **Getting Started** <a id="getting-started"></a>
 
-## 💻 Getting Started
-
-### 🔧 Install GHC and Cabal
-
-Use [GHCup](https://www.haskell.org/ghcup/) to install:
+### Install GHC & Cabal
 
 ```bash
 curl -sSf https://get-ghcup.haskell.org | sh
@@ -473,37 +494,23 @@ ghcup set ghc 9.2.8
 ghcup install cabal
 ```
 
----
-
-## ⚙️ Build the Project with Cabal
+### Build & Run
 
 ```bash
 cabal update
 cabal build
-```
-
-To run:
-
-```bash
 cabal run
 ```
 
 ---
 
-## 🧪 Property-Based Testing with QuickCheck & Tasty
+## 6. 🧪 **Property-Based Testing** <a id="property-based-testing"></a>
 
-### 📦 Install testing dependencies
+Ensure `.cabal` includes QuickCheck and Tasty:
 
-Make sure your `.cabal` file includes:
-
-```cabal
-build-depends:
-  base,
-  QuickCheck,
-  tasty,
-  tasty-quickcheck
+```bash
+cabal test
 ```
-
 ### 📁 Sample `test/Spec.hs`
 
 ```haskell
@@ -561,16 +568,14 @@ main = do
   quickCheck prop_generateMLTTokens
 ```
 
-### ▶️ Run the tests
-
-```bash
-cabal test
-```
-
 ---
 
-## 🧠 Using GHCi (REPL)
+## 7. 🧠 **Using GHCi (REPL)** <a id="using-ghci-repl"></a>
 
+```bash
+ghci src/Token.hs
+:t createToken
+```
 ### ▶️ Launch REPL
 
 ```bash
@@ -641,28 +646,29 @@ executable mssd-app
   default-language:    Haskell2010
 
 ```
+---
 
-### Key Fields
+## 8. 📜 **Understanding the `.cabal` File** <a id="understanding-the-cabal-file"></a>
 
-- `exposed-modules`: modules other files can import
-- `hs-source-dirs`: where your `.hs` files are
-- `build-depends`: libraries required
-- `default-language`: Haskell2010 is safe default
+Key fields:
+- `exposed-modules`: Modules other files can import
+- `hs-source-dirs`: Source file directories
+- `build-depends`: Required libraries
 
 ---
 
-## ❤️ Why Use GADTs Instead of LiquidHaskell?
+## 9. ⚖️ **GADTs vs LiquidHaskell** <a id="gadts-vs-liquidhaskell"></a>
 
 | Feature              | LiquidHaskell      | GADTs & DataKinds     |
-|---------------------|--------------------|------------------------|
-| External tool needed| ✅ Yes              | ❌ No (GHC only)       |
-| Compile-time safety | ✅ Yes              | ✅ Yes                 |
-| Error readability   | ❌ Sometimes cryptic| ✅ GHC messages         |
-| Setup complexity    | High               | Low                    |
+|----------------------|--------------------|-----------------------|
+| External tool        | ✅ Yes             | ❌ No (GHC only)      |
+| Compile-time safety  | ✅ Yes             | ✅ Yes                |
+| Error readability    | ❌ Sometimes cryptic| ✅ GHC messages       |
+| Setup complexity     | High               | Low                   |
 
 ---
 
-## 📚 Want to Learn More?
+## 10. 📚 **Additional Resources** <a id="additional-resources"></a>
 
 - [GADTs in Haskell](https://wiki.haskell.org/GADT)
 - [QuickCheck Docs](https://hackage.haskell.org/package/QuickCheck)
@@ -670,8 +676,12 @@ executable mssd-app
 
 ---
 
-## 🙌 Final Words
+## 11. 🙌 **Final Words** <a id="final-words"></a>
 
-This project is designed to make you **think in types** 🧠 — the more logic you encode in types, the fewer runtime bugs you'll see. If you'd like to extend it with more safe-state transitions (like trades, swaps, vesting), you're on the right track!
+This project helps you **think in types** 🧠—the more logic encoded in types, the fewer runtime bugs you'll encounter. Extend it further with state transitions like trades and swaps. Enjoy building with MSSD! 🍨
 
-Enjoy the MSSD. 🍨
+## 12. 🙌 Author : Bernard Sibanda
+## 12. 🙌 Date :   26-04-2025
+## 12. 🙌 Licence : MIT
+---------------------------------------------------------------------
+
