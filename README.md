@@ -1,6 +1,10 @@
 
 # 🍨 MSSD — Mockup Sundae Swap DEX (Type-Safe Haskell Project)
 
+![Pasted image (16)](https://github.com/user-attachments/assets/c96f4a17-0a09-4ed3-b42a-95fb9799d119)
+
+![image](https://github.com/user-attachments/assets/0a260d32-1c4c-4df1-9594-a201529f6976)
+
 Welcome to the **MSSD** project — a beginner-friendly, strongly typed mock decentralized exchange built in **pure Haskell**. This project uses GADTs, smart constructors, and property-based testing to teach you core functional programming concepts and formal correctness.
 
 ---
