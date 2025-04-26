@@ -1,5 +1,5 @@
 
-# 🍨 MSSD — Mockup Sundae Swap DEX (Type-Safe Haskell Project)
+# 🍨 MSSD — Mockup Sundae Swap DEX : [Cabal, Haskell, Property Based Tests(Quick Check), Logic & Maths Proofing(liquidhaskell/GADTs)]
 
 ![image](https://github.com/user-attachments/assets/0a260d32-1c4c-4df1-9594-a201529f6976)
 
