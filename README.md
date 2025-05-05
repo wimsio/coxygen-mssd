@@ -1,6 +1,6 @@
 # 🍨 **MSSD — Mockup Sundae Swap DEX**  
 
-<img src="https://github.com/user-attachments/assets/c96f4a17-0a09-4ed3-b42a-95fb9799d119" alt="placeholder" width="50" height="50">
+<img src="https://github.com/user-attachments/assets/c96f4a17-0a09-4ed3-b42a-95fb9799d119" alt="placeholder" width="80" height="50">
 
 ### *[Cabal, Haskell, Property Based Tests (QuickCheck), Logic & Maths Proofing (LiquidHaskell/GADTs)]*
 
